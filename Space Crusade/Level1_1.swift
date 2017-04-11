@@ -11,7 +11,8 @@ import CoreMotion
 
 
 
-class Level1_1: SKScene {
+class Level1_1: SKScene, SKPhysicsContactDelegate {
+    
     var score = 0
     var motionManager: CMMotionManager!
     let hero = Player(color:UIColor.blue, size: CGSize(width: 100, height: 200))
@@ -20,13 +21,13 @@ class Level1_1: SKScene {
     let right = SKSpriteNode(color:UIColor.red, size: CGSize(width: 100, height: 100))
     let shoot = SKSpriteNode(color:UIColor.black, size: CGSize(width: 100, height: 100))
     var gameTimer: Timer!
-   
     
     override func didMove(to view: SKView) {
         motionManager = CMMotionManager()
         motionManager.startAccelerometerUpdates()
         gameTimer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(runTimedCode), userInfo: nil, repeats: true)  // Starts it repeating
 
+        self.physicsWorld.contactDelegate = self
         
         let backround = SKSpriteNode(color:UIColor.brown, size: CGSize(width:1080,height:1920))
         backround.position = CGPoint(x: 540,y:960)
@@ -34,11 +35,12 @@ class Level1_1: SKScene {
         backround.zPosition = -1
         addChild(backround)
         
-         //start position
+        //start position
      
         hero.position = CGPoint(x: 540,y:300)
         hero.physicsBody = SKPhysicsBody(rectangleOf: hero.size)
-        hero.physicsBody!.isDynamic=false
+        hero.physicsBody!.isDynamic=true
+        hero.physicsBody?.affectedByGravity = true
         addChild(hero)
         
        
@@ -57,31 +59,44 @@ class Level1_1: SKScene {
         right.position = CGPoint(x: 700,y:100)
         right.name = "right"
         addChild(right)
-        
-        
     
       
     }
-     func runTimedCode() {  // Will run every 5 seconds
+    
+    func runTimedCode() {  // Will run every 5 seconds
         let astroid = SKSpriteNode(color:UIColor.blue, size: CGSize(width: 100, height: 100))
         astroid.position = CGPoint(x: RandomInt(min: 0, max: 1080),y:1920)
         astroid.name = "astroid"
-        astroid.physicsBody?.contactTestBitMask = (astroid.physicsBody?.collisionBitMask)!
+        astroid.physicsBody!.contactTestBitMask = (astroid.physicsBody!.collisionBitMask)
+        astroid.physicsBody?.isDynamic = true
+        astroid.physicsBody!.categoryBitMask = soldierCategory
+        astroid.physicsBody!.contactTestBitMask = bulletCategory
+        astroid.physicsBody!.collisionBitMask = 0
         let actionMove = SKAction.move(to: CGPoint(x: astroid.position.x, y: 0), duration: TimeInterval(1.0))
         let actionMoveDone = SKAction.removeFromParent()
         astroid.run(SKAction.sequence([actionMove, actionMoveDone]))
 
         addChild(astroid)
-        }
+    }
     
     override func update(_ currentTime: TimeInterval) {
         if let accelerometerData = motionManager.accelerometerData {
-            let Px = accelerometerData.acceleration.y *
-                -50
-            let Py = accelerometerData.acceleration.x *
-                50
             
-            hero.position = CGPoint(x: Px, y:Py)
+            if (hero.physicsBody!.isDynamic == false) {
+                hero.physicsBody!.isDynamic=true
+            }
+            
+            if hero.position.x >= 50 && hero.position.x <= 1030 {
+                physicsWorld.gravity = CGVector(dx: accelerometerData.acceleration.x * 9, dy: accelerometerData.acceleration.y * 0)
+            } else if hero.position.x < 50 {
+                hero.physicsBody?.isDynamic = false
+                hero.position.x = 50
+            } else if hero.position.x > 1030 {
+                hero.physicsBody?.isDynamic = false
+                hero.position.x = 1030
+            }
+        
+            hero.position.y = 300
         }
     }
     
@@ -107,10 +122,10 @@ class Level1_1: SKScene {
                 }            }
             if touchedNode.name == "shoot"{
                 
-                  let lazer = SKSpriteNode(color:UIColor.purple, size: CGSize(width: 50, height: 100))
+                let lazer = SKSpriteNode(color:UIColor.purple, size: CGSize(width: 50, height: 100))
                 lazer.position = CGPoint(x: hero.position.x,y:hero.position.y)
                 lazer.name = "lazer"
-                lazer.physicsBody?.contactTestBitMask = (lazer.physicsBody?.collisionBitMask)!
+                lazer.physicsBody!.contactTestBitMask = (lazer.physicsBody!.collisionBitMask)
                 addChild(lazer)
                 let actionMoveS = SKAction.move(to: CGPoint(x: hero.position.x, y: 1920), duration: TimeInterval(1.0))
                 let actionMoveDoneS = SKAction.removeFromParent()
